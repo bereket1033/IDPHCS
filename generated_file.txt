@@ -1,28 +1,24 @@
-            pass
+    data = request.data
+    
+    # Extract user data
+    user_data = {
+        'username': data.get('username'),
+        'email': data.get('email'),
+        'password': make_password(data.get('password')),
+        'first_name': data.get('firstname'),
+        'last_name': data.get('lastname'),
+        'is_active': False
+    }
 
-        return token
+    # Extract host data
+    host_data = {
+        'capacity': data.get('capacity'),
+        'preference': data.get('preference'),
+        'language': data.get('language'),
+        'hosting_experience': data.get('hosting_experience'),
+        'location': data.get('location'),
+        'contact_info': data.get('contact_info'),
+        'legal_doc_id': data.get('legal_doc_id'),
+        'economic_status': data.get('economic_status')
+    }
 
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def UserProfileAPIView(request):
-    if request.method == 'GET':
-        try:
-            actor_profile = request.user.actorprofile
-            serializer = UserProfileSerializer(actor_profile)
-            user_type = actor_profile.user_type
-            profile_image_url = get_profile_image_url(actor_profile.id)
-
-            data = {"actor_profile": serializer.data, "profileImageUrl": profile_image_url}
-
-            if user_type == 'NGO':
-                # Fetch data from the NGO table
-                try:
-                    ngo_data = NGO.objects.filter(profile__user=request.user)
-                    ngo_serializer = NGOSerializer(ngo_data, many=True)
-                    data["profile"] = ngo_serializer.data
-                    return Response(data)
-                except NGO.DoesNotExist:
