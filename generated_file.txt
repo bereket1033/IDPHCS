@@ -1,24 +1,12 @@
-    data = request.data
-    
-    # Extract user data
-    user_data = {
-        'username': data.get('username'),
-        'email': data.get('email'),
-        'password': make_password(data.get('password')),
-        'first_name': data.get('firstname'),
-        'last_name': data.get('lastname'),
-        'is_active': False
-    }
+            'current_population': data.get('current_population'),
+            'demographic_info': data.get('demographic_info'),
+            'shelter_type': data.get('shelter_type'),
+            'economic_activities': data.get('economic_activities'),
+            'health_education_info': data.get('health_education_info'),
+            'status': data.get('status')
+        }
 
-    # Extract host data
-    host_data = {
-        'capacity': data.get('capacity'),
-        'preference': data.get('preference'),
-        'language': data.get('language'),
-        'hosting_experience': data.get('hosting_experience'),
-        'location': data.get('location'),
-        'contact_info': data.get('contact_info'),
-        'legal_doc_id': data.get('legal_doc_id'),
-        'economic_status': data.get('economic_status')
-    }
-
+        try:
+            # Create Django auth user
+            user_data = {
+                'username': data.get('username'),
