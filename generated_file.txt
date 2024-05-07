@@ -1,12 +1,46 @@
-            'current_population': data.get('current_population'),
-            'demographic_info': data.get('demographic_info'),
-            'shelter_type': data.get('shelter_type'),
-            'economic_activities': data.get('economic_activities'),
-            'health_education_info': data.get('health_education_info'),
-            'status': data.get('status')
-        }
+            profile_image_url = get_profile_image_url(actor_profile.id)
 
-        try:
-            # Create Django auth user
-            user_data = {
-                'username': data.get('username'),
+            data = {"actor_profile": serializer.data, "profileImageUrl": profile_image_url}
+
+            if user_type == 'NGO':
+                # Fetch data from the NGO table
+                try:
+                    ngo_data = NGO.objects.filter(profile__user=request.user)
+                    ngo_serializer = NGOSerializer(ngo_data, many=True)
+                    data["profile"] = ngo_serializer.data
+                    return Response(data)
+                except NGO.DoesNotExist:
+                    return Response({"error": "NGO data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
+
+            elif user_type == 'Camp Admin':
+                # Fetch data from the Camp table
+                try:
+                    camp_data = Camp.objects.filter(profile__user=request.user)
+                    camp_serializer = CampSerializer(camp_data, many=True)
+                    data["profile"] = camp_serializer.data
+                    return Response(data)
+                except Camp.DoesNotExist:
+                    return Response({"error": "Camp data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
+
+            elif user_type == 'Host':
+                # Fetch data from the Host table
+                try:
+                    host_data = Host.objects.filter(profile__user=request.user)
+                    host_serializer = HostSerializer(host_data, many=True)
+                    data["profile"] = host_serializer.data
+                    return Response(data)
+                except Host.DoesNotExist:
+                    return Response({"error": "Host data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
+
+            elif user_type == 'IDP':
+                # Fetch data from the IdpCampAssociation table using IDP email
+                try:
+                    idp_email = actor_profile.user.email
+                    idp_camp_association_data = IdpCampAssociation.objects.filter(idpemail=idp_email)
+                    idp_camp_association_serializer = IdpCampAssociationSerializer(idp_camp_association_data, many=True)
+                    data["idp_camp_association"] = idp_camp_association_serializer.data
+                except IdpCampAssociation.DoesNotExist:
+                    return Response({"error": "IDP Camp Association data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
+
+                # Fetch data from the IDP table
+                try:
