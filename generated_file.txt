@@ -1,41 +1,14 @@
-        return Response(idppre_serializer.data, status=status.HTTP_201_CREATED)
-
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-@api_view(['POST'])
-def register_idp(request):
-    # Parse incoming JSON
-    data = request.data
-
-    # Extract email from the request data
-    email = data.get('email')
-
-    try:
-        # Check if the email exists in IDPPre
-        if IDPPre.objects.filter(email=email).exists():
-            # Ensure all required fields are provided
-            if all(key in data for key in ['username', 'password', 'location', 'phone_number',
-                                           'place_of_origin', 'contact_information', 'household_composition',
-                                           'vulnerability_status', 'health_status', 'documentation_status',
-                                           'education_level', 'language_spoken', 'previous_assistance_received',
-                                           'protection_concerns', 'economic_status', 'age', 'gender']):
-                # Extract user data
-                user_data = {
-                    'username': data.get('username'),
-                    'email': email,
-                    'password': make_password(data.get('password')),
-                    'first_name': data.get('firstname'),
-                    'last_name': data.get('lastname')
-                }
-
-                # Register user in Django auth table
-                user = User.objects.create(**user_data)
-
-                # Extract ActorProfile data
-                actor_profile_data = {
-                    'user': user,
-                    'location': data.get('location'),
+                # Extract IDP data
+                idp_data = {
+                    'profile': actor_profile,
+                    'place_of_origin': data.get('place_of_origin'),
+                    'contact_information': data.get('contact_information'),
+                    'household_composition': data.get('household_composition'),
+                    'vulnerability_status': data.get('vulnerability_status'),
+                    'health_status': data.get('health_status'),
+                    'documentation_status': data.get('documentation_status'),
+                    'education_level': data.get('education_level'),
+                    'language_spoken': data.get('language_spoken'),
+                    'previous_assistance_received': data.get('previous_assistance_received'),
+                    'protection_concerns': data.get('protection_concerns'),
+                    'economic_status': data.get('economic_status'),
