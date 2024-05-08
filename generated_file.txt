@@ -1,46 +1,41 @@
-            profile_image_url = get_profile_image_url(actor_profile.id)
+        return Response(idppre_serializer.data, status=status.HTTP_201_CREATED)
 
-            data = {"actor_profile": serializer.data, "profileImageUrl": profile_image_url}
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-            if user_type == 'NGO':
-                # Fetch data from the NGO table
-                try:
-                    ngo_data = NGO.objects.filter(profile__user=request.user)
-                    ngo_serializer = NGOSerializer(ngo_data, many=True)
-                    data["profile"] = ngo_serializer.data
-                    return Response(data)
-                except NGO.DoesNotExist:
-                    return Response({"error": "NGO data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
 
-            elif user_type == 'Camp Admin':
-                # Fetch data from the Camp table
-                try:
-                    camp_data = Camp.objects.filter(profile__user=request.user)
-                    camp_serializer = CampSerializer(camp_data, many=True)
-                    data["profile"] = camp_serializer.data
-                    return Response(data)
-                except Camp.DoesNotExist:
-                    return Response({"error": "Camp data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
 
-            elif user_type == 'Host':
-                # Fetch data from the Host table
-                try:
-                    host_data = Host.objects.filter(profile__user=request.user)
-                    host_serializer = HostSerializer(host_data, many=True)
-                    data["profile"] = host_serializer.data
-                    return Response(data)
-                except Host.DoesNotExist:
-                    return Response({"error": "Host data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
 
-            elif user_type == 'IDP':
-                # Fetch data from the IdpCampAssociation table using IDP email
-                try:
-                    idp_email = actor_profile.user.email
-                    idp_camp_association_data = IdpCampAssociation.objects.filter(idpemail=idp_email)
-                    idp_camp_association_serializer = IdpCampAssociationSerializer(idp_camp_association_data, many=True)
-                    data["idp_camp_association"] = idp_camp_association_serializer.data
-                except IdpCampAssociation.DoesNotExist:
-                    return Response({"error": "IDP Camp Association data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
+@api_view(['POST'])
+def register_idp(request):
+    # Parse incoming JSON
+    data = request.data
 
-                # Fetch data from the IDP table
-                try:
+    # Extract email from the request data
+    email = data.get('email')
+
+    try:
+        # Check if the email exists in IDPPre
+        if IDPPre.objects.filter(email=email).exists():
+            # Ensure all required fields are provided
+            if all(key in data for key in ['username', 'password', 'location', 'phone_number',
+                                           'place_of_origin', 'contact_information', 'household_composition',
+                                           'vulnerability_status', 'health_status', 'documentation_status',
+                                           'education_level', 'language_spoken', 'previous_assistance_received',
+                                           'protection_concerns', 'economic_status', 'age', 'gender']):
+                # Extract user data
+                user_data = {
+                    'username': data.get('username'),
+                    'email': email,
+                    'password': make_password(data.get('password')),
+                    'first_name': data.get('firstname'),
+                    'last_name': data.get('lastname')
+                }
+
+                # Register user in Django auth table
+                user = User.objects.create(**user_data)
+
+                # Extract ActorProfile data
+                actor_profile_data = {
+                    'user': user,
+                    'location': data.get('location'),
