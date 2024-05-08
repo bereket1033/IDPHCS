@@ -1,14 +1,77 @@
-                # Extract IDP data
-                idp_data = {
-                    'profile': actor_profile,
-                    'place_of_origin': data.get('place_of_origin'),
-                    'contact_information': data.get('contact_information'),
-                    'household_composition': data.get('household_composition'),
-                    'vulnerability_status': data.get('vulnerability_status'),
-                    'health_status': data.get('health_status'),
-                    'documentation_status': data.get('documentation_status'),
-                    'education_level': data.get('education_level'),
-                    'language_spoken': data.get('language_spoken'),
-                    'previous_assistance_received': data.get('previous_assistance_received'),
-                    'protection_concerns': data.get('protection_concerns'),
-                    'economic_status': data.get('economic_status'),
+                'email': data.get('email'),
+                'password': make_password(data.get('password')),
+                'first_name': data.get('firstname'),
+                'last_name': data.get('lastname'),
+                'is_active': False
+            }
+            user = User.objects.create(**user_data)
+
+            # Create ActorProfile
+            actor_profile_data = {
+                'user': user,
+                'location': data.get('location'),
+                'phone_number': data.get('phone_number'),
+                'user_type': data.get('user_type')
+            }
+            actor_profile = ActorProfile.objects.create(**actor_profile_data)
+
+            # Associate Camp with ActorProfile
+            camp_data['profile'] = actor_profile
+
+            # Register Camp
+            camp = Camp.objects.create(**camp_data)
+
+            return Response({"message": "Camp registered successfully. Please wait until it is activated by the Admin."}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def register_volunteer(request):
+    # Parse incoming JSON
+    data = request.data
+    
+    # Extract user data
+    user_data = {
+        'username': data.get('username'),
+        'email': data.get('email'),
+        'password': make_password(data.get('password')),
+        'first_name': data.get('firstname'),
+        'last_name': data.get('lastname'),
+        'is_active': False
+    }
+
+    # Extract common actor profile data
+    actor_profile_data = {
+        'location': data.get('location'),
+        'phone_number': data.get('phone_number'),
+        'user_type': 'Volunteer'  # Set user type as Volunteer
+    }
+
+    try:
+        # Register user in Django auth table
+        user = User.objects.create(**user_data)
+
+        # Register ActorProfile
+        actor_profile_data['user'] = user  # Associate with the created user
+        actor_profile = ActorProfile.objects.create(**actor_profile_data)
+
+        # Serialize actor profile data
+        serializer = UserProfileSerializer(actor_profile)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def register_idppre(request):
+    data = request.data
+    
+    idppre_data = {
+        'email': data.get('email'),
+        'phone_number': data.get('phone_number'),
+        'first_name': data.get('first_name'),
+        'last_name': data.get('last_name'),
+    }
+
+    try:
