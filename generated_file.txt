@@ -1,0 +1,15 @@
+
+        # Add custom claims to token payload
+        try:
+            actor_profile = user.actorprofile
+            token['user_type'] = actor_profile.user_type
+        except ActorProfile.DoesNotExist:
+            # Handle the case where ActorProfile does not exist
+            pass
+
+        return token
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+
