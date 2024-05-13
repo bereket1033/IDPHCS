@@ -1,29 +1,11 @@
-            if all(key in data for key in ['username', 'password', 'location', 'phone_number',
-                                           'place_of_origin', 'contact_information', 'household_composition',
-                                           'vulnerability_status', 'health_status', 'documentation_status',
-                                           'education_level', 'language_spoken', 'previous_assistance_received',
-                                           'protection_concerns', 'economic_status', 'age', 'gender']):
-                # Extract user data
-                user_data = {
-                    'username': data.get('username'),
-                    'email': email,
-                    'password': make_password(data.get('password')),
-                    'first_name': data.get('firstname'),
-                    'last_name': data.get('lastname')
-                }
+                # Fetch data from the IdpCampAssociation table using IDP email
+                try:
+                    idp_email = actor_profile.user.email
+                    idp_camp_association_data = IdpCampAssociation.objects.filter(idpemail=idp_email)
+                    idp_camp_association_serializer = IdpCampAssociationSerializer(idp_camp_association_data, many=True)
+                    data["idp_camp_association"] = idp_camp_association_serializer.data
+                except IdpCampAssociation.DoesNotExist:
+                    return Response({"error": "IDP Camp Association data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
 
-                # Register user in Django auth table
-                user = User.objects.create(**user_data)
-
-                # Extract ActorProfile data
-                actor_profile_data = {
-                    'user': user,
-                    'location': data.get('location'),
-                    'phone_number': data.get('phone_number'),
-                    'user_type': 'IDP'
-                }
-
-                # Register ActorProfile
-                actor_profile = ActorProfile.objects.create(**actor_profile_data)
-
-                # Extract IDP data
+                # Fetch data from the IDP table
+                try:
