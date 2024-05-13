@@ -1,33 +1,29 @@
-        else:
-            return Response({"error": "Please Register by any Camp admin first to sign up"}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            if all(key in data for key in ['username', 'password', 'location', 'phone_number',
+                                           'place_of_origin', 'contact_information', 'household_composition',
+                                           'vulnerability_status', 'health_status', 'documentation_status',
+                                           'education_level', 'language_spoken', 'previous_assistance_received',
+                                           'protection_concerns', 'economic_status', 'age', 'gender']):
+                # Extract user data
+                user_data = {
+                    'username': data.get('username'),
+                    'email': email,
+                    'password': make_password(data.get('password')),
+                    'first_name': data.get('firstname'),
+                    'last_name': data.get('lastname')
+                }
 
-class IsSuperAdmin(BasePermission):
-    def has_permission(self, request, view):
-        return request.user and request.user.is_superuser
+                # Register user in Django auth table
+                user = User.objects.create(**user_data)
 
-@api_view(['GET'])
-@permission_classes([IsSuperAdmin])
-def activate_user(request, user_id):
-    try:
-        user = User.objects.get(id=user_id)
-        user.is_active = True
-        user.save()
+                # Extract ActorProfile data
+                actor_profile_data = {
+                    'user': user,
+                    'location': data.get('location'),
+                    'phone_number': data.get('phone_number'),
+                    'user_type': 'IDP'
+                }
 
-        return Response({"message": "User activated successfully"}, status=status.HTTP_200_OK)
-    except User.DoesNotExist:
-        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-@api_view(['GET'])
-@permission_classes([IsSuperAdmin])
-def deactivate_user(request, user_id):
-    try:
-        user = User.objects.get(id=user_id)
-        user.is_active = False
-        user.save()
+                # Register ActorProfile
+                actor_profile = ActorProfile.objects.create(**actor_profile_data)
 
-        return Response({"message": "User deactivated successfully"}, status=status.HTTP_200_OK)
-    except User.DoesNotExist:
+                # Extract IDP data
