@@ -1,25 +1,40 @@
-    
-@api_view(['POST'])
-def register_ngo(request):
-    if request.method == 'POST':
-        # Parse incoming JSON
-        data = request.data
-        
-        # Extract user data
-        user_data = {
-            'username': data.get('username'),
-            'email': data.get('email'),
-            'password': make_password(data.get('password')),
-            'first_name': data.get('first_name'),
-            'last_name': data.get('last_name'),
-            'is_active': False
-        }
+                    'phone_number': data.get('phone_number'),
+                    'user_type': 'IDP'
+                }
 
-        # Extract NGO data
-        ngo_data = {
-            'name': data.get('name'),
-            'location': data.get('location'),
-            'capacity': data.get('capacity'),
-            'legal_doc': data.get('legal_doc'),
-            'country': data.get('country'),
-            'status': data.get('status')
+                # Register ActorProfile
+                actor_profile = ActorProfile.objects.create(**actor_profile_data)
+
+                # Extract IDP data
+                idp_data = {
+                    'profile': actor_profile,
+                    'place_of_origin': data.get('place_of_origin'),
+                    'contact_information': data.get('contact_information'),
+                    'household_composition': data.get('household_composition'),
+                    'vulnerability_status': data.get('vulnerability_status'),
+                    'health_status': data.get('health_status'),
+                    'documentation_status': data.get('documentation_status'),
+                    'education_level': data.get('education_level'),
+                    'language_spoken': data.get('language_spoken'),
+                    'previous_assistance_received': data.get('previous_assistance_received'),
+                    'protection_concerns': data.get('protection_concerns'),
+                    'economic_status': data.get('economic_status'),
+                    'is_verified': data.get('is_verified', False),
+                    'age': data.get('age'),
+                    'gender': data.get('gender')
+                }
+
+                # Register IDP
+                idp = Idp.objects.create(**idp_data)
+
+                # Serialize IDP data
+                serializer = IDPSerializer(idp)
+
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"error": "Incomplete data provided for IDP registration"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"error": "Please Register by any Camp admin first to sign up"}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
