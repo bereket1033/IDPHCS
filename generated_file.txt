@@ -1,15 +1,64 @@
+    }
 
-        # Add custom claims to token payload
+    # Extract common actor profile data
+    actor_profile_data = {
+        'location': data.get('location'),
+        'phone_number': data.get('phone_number'),
+        'user_type': data.get('user_type')
+    }
+
+    try:
+        # Register user in Django auth table
+        user = User.objects.create(**user_data)
+
+        # Register ActorProfile
+        actor_profile_data['user'] = user  # Associate with the created user
+        actor_profile = ActorProfile.objects.create(**actor_profile_data)
+
+        # Register Host
+        host_data['profile'] = actor_profile  # Associate with the created actor profile
+        host = Host.objects.create(**host_data)
+
+        # Serialize actor profile data
+        serializer = UserProfileSerializer(actor_profile)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['POST'])
+def register_camp(request):
+    if request.method == 'POST':
+        # Parse incoming JSON
+        data = request.data
+        
+        # Extract camp data
+        camp_data = {
+            'name': data.get('name'),
+            'location': data.get('location'),
+            'capacity': data.get('capacity'),
+            'current_population': data.get('current_population'),
+            'demographic_info': data.get('demographic_info'),
+            'shelter_type': data.get('shelter_type'),
+            'economic_activities': data.get('economic_activities'),
+            'health_education_info': data.get('health_education_info'),
+            'status': data.get('status')
+        }
+
         try:
-            actor_profile = user.actorprofile
-            token['user_type'] = actor_profile.user_type
-        except ActorProfile.DoesNotExist:
-            # Handle the case where ActorProfile does not exist
-            pass
+            # Create Django auth user
+            user_data = {
+                'username': data.get('username'),
+                'email': data.get('email'),
+                'password': make_password(data.get('password')),
+                'first_name': data.get('firstname'),
+                'last_name': data.get('lastname'),
+                'is_active': False
+            }
+            user = User.objects.create(**user_data)
 
-        return token
-
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
-
-
+            # Create ActorProfile
+            actor_profile_data = {
+                'user': user,
+                'location': data.get('location'),
+                'phone_number': data.get('phone_number'),
