@@ -1,20 +1,3 @@
-        # Retrieve all users
-        users = User.objects.all()
-
-        # Serialize user data
-        serializer = UserSerializer(users, many=True)
-
-        # Return serialized data
-        return Response(serializer.data)
-    
-@api_view(['POST'])
-def register_ngo(request):
-    if request.method == 'POST':
-        # Parse incoming JSON
-        data = request.data
-        
-        # Extract user data
-        user_data = {
             'username': data.get('username'),
             'email': data.get('email'),
             'password': make_password(data.get('password')),
@@ -36,3 +19,11 @@ def register_ngo(request):
         # Extract common actor profile data
         actor_profile_data = {
             'location': data.get('location'),
+            'phone_number': data.get('phone_number'),
+            'user_type': data.get('user_type')
+        }
+
+        try:
+            # Register user in Django auth table
+            user = User.objects.create(**user_data)
+
