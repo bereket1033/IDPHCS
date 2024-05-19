@@ -1,37 +1,25 @@
-        'preference': data.get('preference'),
-        'language': data.get('language'),
-        'hosting_experience': data.get('hosting_experience'),
-        'location': data.get('location'),
-        'contact_info': data.get('contact_info'),
-        'legal_doc_id': data.get('legal_doc_id'),
-        'economic_status': data.get('economic_status')
-    }
-
-    # Extract common actor profile data
-    actor_profile_data = {
-        'location': data.get('location'),
-        'phone_number': data.get('phone_number'),
-        'user_type': data.get('user_type')
-    }
-
-    try:
-        # Register user in Django auth table
-        user = User.objects.create(**user_data)
-
-        # Register ActorProfile
-        actor_profile_data['user'] = user  # Associate with the created user
-        actor_profile = ActorProfile.objects.create(**actor_profile_data)
-
-        # Register Host
-        host_data['profile'] = actor_profile  # Associate with the created actor profile
-        host = Host.objects.create(**host_data)
-
-        # Serialize actor profile data
-        serializer = UserProfileSerializer(actor_profile)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
 @api_view(['POST'])
-def register_camp(request):
+def register_ngo(request):
+    if request.method == 'POST':
+        # Parse incoming JSON
+        data = request.data
+        
+        # Extract user data
+        user_data = {
+            'username': data.get('username'),
+            'email': data.get('email'),
+            'password': make_password(data.get('password')),
+            'first_name': data.get('first_name'),
+            'last_name': data.get('last_name'),
+            'is_active': False
+        }
+
+        # Extract NGO data
+        ngo_data = {
+            'name': data.get('name'),
+            'location': data.get('location'),
+            'capacity': data.get('capacity'),
+            'legal_doc': data.get('legal_doc'),
+            'country': data.get('country'),
+            'status': data.get('status')
