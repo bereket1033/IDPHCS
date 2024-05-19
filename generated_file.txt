@@ -1,29 +1,27 @@
-            'username': data.get('username'),
-            'email': data.get('email'),
-            'password': make_password(data.get('password')),
-            'first_name': data.get('first_name'),
-            'last_name': data.get('last_name'),
-            'is_active': False
-        }
 
-        # Extract NGO data
-        ngo_data = {
-            'name': data.get('name'),
-            'location': data.get('location'),
-            'capacity': data.get('capacity'),
-            'legal_doc': data.get('legal_doc'),
-            'country': data.get('country'),
-            'status': data.get('status')
-        }
+                # Register IDP
+                idp = Idp.objects.create(**idp_data)
 
-        # Extract common actor profile data
-        actor_profile_data = {
-            'location': data.get('location'),
-            'phone_number': data.get('phone_number'),
-            'user_type': data.get('user_type')
-        }
+                # Serialize IDP data
+                serializer = IDPSerializer(idp)
 
-        try:
-            # Register user in Django auth table
-            user = User.objects.create(**user_data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"error": "Incomplete data provided for IDP registration"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"error": "Please Register by any Camp admin first to sign up"}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class IsSuperAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_superuser
+
+@api_view(['GET'])
+@permission_classes([IsSuperAdmin])
+def activate_user(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+        user.is_active = True
+        user.save()
 
