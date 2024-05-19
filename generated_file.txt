@@ -1,35 +1,38 @@
-            actor_profile_data = {
-                'user': user,
-                'location': data.get('location'),
-                'phone_number': data.get('phone_number'),
-                'user_type': data.get('user_type')
-            }
-            actor_profile = ActorProfile.objects.create(**actor_profile_data)
+        # Retrieve all users
+        users = User.objects.all()
 
-            # Associate Camp with ActorProfile
-            camp_data['profile'] = actor_profile
+        # Serialize user data
+        serializer = UserSerializer(users, many=True)
 
-            # Register Camp
-            camp = Camp.objects.create(**camp_data)
-
-            return Response({"message": "Camp registered successfully. Please wait until it is activated by the Admin."}, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['POST'])
-def register_volunteer(request):
-    # Parse incoming JSON
-    data = request.data
+        # Return serialized data
+        return Response(serializer.data)
     
-    # Extract user data
-    user_data = {
-        'username': data.get('username'),
-        'email': data.get('email'),
-        'password': make_password(data.get('password')),
-        'first_name': data.get('firstname'),
-        'last_name': data.get('lastname'),
-        'is_active': False
-    }
+@api_view(['POST'])
+def register_ngo(request):
+    if request.method == 'POST':
+        # Parse incoming JSON
+        data = request.data
+        
+        # Extract user data
+        user_data = {
+            'username': data.get('username'),
+            'email': data.get('email'),
+            'password': make_password(data.get('password')),
+            'first_name': data.get('first_name'),
+            'last_name': data.get('last_name'),
+            'is_active': False
+        }
 
-    # Extract common actor profile data
-    actor_profile_data = {
+        # Extract NGO data
+        ngo_data = {
+            'name': data.get('name'),
+            'location': data.get('location'),
+            'capacity': data.get('capacity'),
+            'legal_doc': data.get('legal_doc'),
+            'country': data.get('country'),
+            'status': data.get('status')
+        }
+
+        # Extract common actor profile data
+        actor_profile_data = {
+            'location': data.get('location'),
