@@ -1,27 +1,55 @@
 
-                # Register IDP
-                idp = Idp.objects.create(**idp_data)
+        # Register ActorProfile
+        actor_profile_data['user'] = user  # Associate with the created user
+        actor_profile = ActorProfile.objects.create(**actor_profile_data)
 
-                # Serialize IDP data
-                serializer = IDPSerializer(idp)
+        # Serialize actor profile data
+        serializer = UserProfileSerializer(actor_profile)
 
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            else:
-                return Response({"error": "Incomplete data provided for IDP registration"}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({"error": "Please Register by any Camp admin first to sign up"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-class IsSuperAdmin(BasePermission):
-    def has_permission(self, request, view):
-        return request.user and request.user.is_superuser
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def register_idppre(request):
+    data = request.data
+    
+    idppre_data = {
+        'email': data.get('email'),
+        'phone_number': data.get('phone_number'),
+        'first_name': data.get('first_name'),
+        'last_name': data.get('last_name'),
+    }
 
-@api_view(['GET'])
-@permission_classes([IsSuperAdmin])
-def activate_user(request, user_id):
     try:
-        user = User.objects.get(id=user_id)
-        user.is_active = True
-        user.save()
+        # Check if the email already exists in IdpCampAssociation
+        if IdpCampAssociation.objects.filter(idpemail=idppre_data['email']).exists():
+            return Response({"error": "An IDP with this email is already associated with a camp."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Register IDPPre
+        idppre = IDPPre.objects.create(**idppre_data)
+        
+        # Retrieve camp ID from the authenticated user's profile if needed
+        camp_id = request.user.id
+        
+        # Example of associating the IDP with a camp (if camp ID is available)
+        idp_camp_association_data = {
+            'camp': camp_id,
+            'idpemail': idppre_data['email']  # Store the email
+        }
+        idp_camp_association_serializer = IdpCampAssociationSerializer(data=idp_camp_association_data)
+        if idp_camp_association_serializer.is_valid():
+            idp_camp_association_serializer.save()
+        
+        # Serialize IDPPre data
+        idppre_serializer = IDPPreSerializer(idppre)
+        
+        return Response(idppre_serializer.data, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
 
