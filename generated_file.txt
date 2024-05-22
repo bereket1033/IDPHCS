@@ -1,47 +1,3 @@
-            user = User.objects.create(**user_data)
-
-            # Register ActorProfile
-            actor_profile_data['user'] = user  # Associate with the created user
-            actor_profile = ActorProfile.objects.create(**actor_profile_data)
-
-            # Register NGO
-            ngo_data['profile'] = actor_profile  # Associate with the created actor profile
-            ngo = NGO.objects.create(**ngo_data)
-
-            # Serialize actor profile data
-            serializer = UserProfileSerializer(actor_profile)
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
-@api_view(['POST'])
-def register_host(request):
-    # Parse incoming JSON
-    data = request.data
-    
-    # Extract user data
-    user_data = {
-        'username': data.get('username'),
-        'email': data.get('email'),
-        'password': make_password(data.get('password')),
-        'first_name': data.get('firstname'),
-        'last_name': data.get('lastname'),
-        'is_active': False
-    }
-
-    # Extract host data
-    host_data = {
-        'capacity': data.get('capacity'),
-        'preference': data.get('preference'),
-        'language': data.get('language'),
-        'hosting_experience': data.get('hosting_experience'),
-        'location': data.get('location'),
-        'contact_info': data.get('contact_info'),
-        'legal_doc_id': data.get('legal_doc_id'),
-        'economic_status': data.get('economic_status')
-    }
-
     # Extract common actor profile data
     actor_profile_data = {
         'location': data.get('location'),
@@ -49,3 +5,76 @@ def register_host(request):
         'user_type': data.get('user_type')
     }
 
+    try:
+        # Register user in Django auth table
+        user = User.objects.create(**user_data)
+
+        # Register ActorProfile
+        actor_profile_data['user'] = user  # Associate with the created user
+        actor_profile = ActorProfile.objects.create(**actor_profile_data)
+
+        # Register Host
+        host_data['profile'] = actor_profile  # Associate with the created actor profile
+        host = Host.objects.create(**host_data)
+
+        # Serialize actor profile data
+        serializer = UserProfileSerializer(actor_profile)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['POST'])
+def register_camp(request):
+    if request.method == 'POST':
+        # Parse incoming JSON
+        data = request.data
+        
+        # Extract camp data
+        camp_data = {
+            'name': data.get('name'),
+            'location': data.get('location'),
+            'capacity': data.get('capacity'),
+            'current_population': data.get('current_population'),
+            'demographic_info': data.get('demographic_info'),
+            'shelter_type': data.get('shelter_type'),
+            'economic_activities': data.get('economic_activities'),
+            'health_education_info': data.get('health_education_info'),
+            'status': data.get('status')
+        }
+
+        try:
+            # Create Django auth user
+            user_data = {
+                'username': data.get('username'),
+                'email': data.get('email'),
+                'password': make_password(data.get('password')),
+                'first_name': data.get('firstname'),
+                'last_name': data.get('lastname'),
+                'is_active': False
+            }
+            user = User.objects.create(**user_data)
+
+            # Create ActorProfile
+            actor_profile_data = {
+                'user': user,
+                'location': data.get('location'),
+                'phone_number': data.get('phone_number'),
+                'user_type': data.get('user_type')
+            }
+            actor_profile = ActorProfile.objects.create(**actor_profile_data)
+
+            # Associate Camp with ActorProfile
+            camp_data['profile'] = actor_profile
+
+            # Register Camp
+            camp = Camp.objects.create(**camp_data)
+
+            return Response({"message": "Camp registered successfully. Please wait until it is activated by the Admin."}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def register_volunteer(request):
+    # Parse incoming JSON
+    data = request.data
