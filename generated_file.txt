@@ -1,38 +1,17 @@
-            elif user_type == 'Volunteer':
-                # If user is a Volunteer, only return actor profile details
-                return Response(data)
-            
-            elif user_type == 'NDRMC Admin':
-                return Response(data)
-
-            else:
-                return Response({"error": "Invalid user_type"}, status=status.HTTP_400_BAD_REQUEST)
-
-        except ActorProfile.DoesNotExist:
-            return Response({"error": "ActorProfile does not exist for this user"}, status=status.HTTP_404_NOT_FOUND)
-
+    def has_permission(self, request, view):
+        return request.user and request.user.is_superuser
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def FullUserProfileAPIView(request, user_id):
+@permission_classes([IsSuperAdmin])
+def activate_user(request, user_id):
     try:
         user = User.objects.get(id=user_id)
-        actor_profile = user.actorprofile
-        serializer = UserProfileSerializer(actor_profile)
-        user_type = actor_profile.user_type
-        profile_image_url = get_profile_image_url(actor_profile.id)
+        user.is_active = True
+        user.save()
 
-        data = {"actor_profile": serializer.data, "profileImageUrl": profile_image_url}
-
-        if user_type == 'NGO':
-            try:
-                ngo_data = NGO.objects.filter(profile__user=user)
-                ngo_serializer = NGOSerializer(ngo_data, many=True)
-                data["profile"] = ngo_serializer.data
-            except NGO.DoesNotExist:
-                return Response({"error": "NGO data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
-
-        elif user_type == 'Camp Admin':
-            try:
-                camp_data = Camp.objects.filter(profile__user=user)
-                camp_serializer = CampSerializer(camp_data, many=True)
+        return Response({"message": "User activated successfully"}, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
