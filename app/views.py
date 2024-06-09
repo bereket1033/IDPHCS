@@ -561,6 +561,7 @@ def search_users(request):
             'first_name': user.first_name,
             'last_name': user.last_name,
             'email': user.email,
+            'is_active': user.is_active,
             'actor_profile': {
                 'location': actor_profile.location if actor_profile else None,
                 'phone_number': actor_profile.phone_number if actor_profile else None,

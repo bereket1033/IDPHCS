@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.db import transaction
-from app.models import ActorProfile, NGO, Host, Camp, IDPPre, Idp, Image, IdpCampAssociation
+from app.models import ActorProfile, NGO, Host, Camp, IDPPre, Idp, Image,  IdpCampAssociation
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.decorators import permission_classes, api_view
@@ -80,6 +80,15 @@ def UserProfileAPIView(request):
                     return Response({"error": "Host data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
 
             elif user_type == 'IDP':
+                # Fetch data from the IdpCampAssociation table using IDP email
+                try:
+                    idp_email = actor_profile.user.email
+                    idp_camp_association_data = IdpCampAssociation.objects.filter(idpemail=idp_email)
+                    idp_camp_association_serializer = IdpCampAssociationSerializer(idp_camp_association_data, many=True)
+                    data["idp_camp_association"] = idp_camp_association_serializer.data
+                except IdpCampAssociation.DoesNotExist:
+                    return Response({"error": "IDP Camp Association data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
+
                 # Fetch data from the IDP table
                 try:
                     idp_data = Idp.objects.get(profile__user=request.user)
@@ -94,7 +103,6 @@ def UserProfileAPIView(request):
                 return Response(data)
             
             elif user_type == 'NDRMC Admin':
-                # If user is a Volunteer, only return actor profile details
                 return Response(data)
 
             else:
@@ -102,6 +110,70 @@ def UserProfileAPIView(request):
 
         except ActorProfile.DoesNotExist:
             return Response({"error": "ActorProfile does not exist for this user"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def FullUserProfileAPIView(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+        actor_profile = user.actorprofile
+        serializer = UserProfileSerializer(actor_profile)
+        user_type = actor_profile.user_type
+        profile_image_url = get_profile_image_url(actor_profile.id)
+
+        data = {"actor_profile": serializer.data, "profileImageUrl": profile_image_url}
+
+        if user_type == 'NGO':
+            try:
+                ngo_data = NGO.objects.filter(profile__user=user)
+                ngo_serializer = NGOSerializer(ngo_data, many=True)
+                data["profile"] = ngo_serializer.data
+            except NGO.DoesNotExist:
+                return Response({"error": "NGO data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
+
+        elif user_type == 'Camp Admin':
+            try:
+                camp_data = Camp.objects.filter(profile__user=user)
+                camp_serializer = CampSerializer(camp_data, many=True)
+                data["profile"] = camp_serializer.data
+            except Camp.DoesNotExist:
+                return Response({"error": "Camp data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
+
+        elif user_type == 'Host':
+            try:
+                host_data = Host.objects.filter(profile__user=user)
+                host_serializer = HostSerializer(host_data, many=True)
+                data["profile"] = host_serializer.data
+            except Host.DoesNotExist:
+                return Response({"error": "Host data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
+
+        elif user_type == 'IDP':
+                # Fetch data from the IdpCampAssociation table using IDP email
+                try:
+                    idp_email = actor_profile.user.email
+                    idp_camp_association_data = IdpCampAssociation.objects.filter(idpemail=idp_email)
+                    idp_camp_association_serializer = IdpCampAssociationSerializer(idp_camp_association_data, many=True)
+                    data["idp_camp_association"] = idp_camp_association_serializer.data
+                except IdpCampAssociation.DoesNotExist:
+                    return Response({"error": "IDP Camp Association data not found for this user"}, status=status.HTTP_404_NOT_FOUND)
+
+
+        elif user_type == 'Volunteer':
+            return Response(data)
+
+        elif user_type == 'NDRMC Admin':
+            return Response(data)
+
+        else:
+            return Response({"error": "Invalid user_type"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(data)
+    except User.DoesNotExist:
+        return Response({"error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+    except ActorProfile.DoesNotExist:
+        return Response({"error": "ActorProfile does not exist for this user"}, status=status.HTTP_404_NOT_FOUND)
+
 
 def get_profile_image_url(profile_id):
     try:
@@ -133,8 +205,8 @@ def register_ngo(request):
             'username': data.get('username'),
             'email': data.get('email'),
             'password': make_password(data.get('password')),
-            'first_name': data.get('firstname'),
-            'last_name': data.get('lastname'),
+            'first_name': data.get('first_name'),
+            'last_name': data.get('last_name'),
             'is_active': False
         }
 
@@ -314,12 +386,8 @@ def register_volunteer(request):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-class IsCampAdmin(BasePermission):
-    def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.groups.filter(name='Camp Admin').exists()
-
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsCampAdmin])
+@permission_classes([IsAuthenticated])
 def register_idppre(request):
     data = request.data
     
@@ -331,36 +399,34 @@ def register_idppre(request):
     }
 
     try:
-        with transaction.atomic():
-            # Check if the email already exists in IdpCampAssociation
-            if IdpCampAssociation.objects.filter(idpemail=idppre_data['email']).exists():
-                return Response({"error": "An IDP with this email is already associated with a camp."}, status=status.HTTP_400_BAD_REQUEST)
+        # Check if the email already exists in IdpCampAssociation
+        if IdpCampAssociation.objects.filter(idpemail=idppre_data['email']).exists():
+            return Response({"error": "An IDP with this email is already associated with a camp."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Register IDPPre
-            idppre = IDPPre.objects.create(**idppre_data)
-            
-            # Retrieve camp ID from the authenticated user's profile
-            camp_id = request.user.actorprofile.camp.id
-            
-            idp_camp_association_data = {
-                'camp': camp_id,
-                'idpemail': idppre_data['email']  # Store the email
-            }
-            
-            # Create IdpCampAssociation
-            idp_camp_association_serializer = IdpCampAssociationSerializer(data=idp_camp_association_data)
-            if idp_camp_association_serializer.is_valid():
-                idp_camp_association_serializer.save()
-            else:
-                raise Exception(idp_camp_association_serializer.errors)
-            
-            # Serialize IDPPre data
-            idppre_serializer = IDPPreSerializer(idppre)
-            
-            return Response(idppre_serializer.data, status=status.HTTP_201_CREATED)
-    
+        # Register IDPPre
+        idppre = IDPPre.objects.create(**idppre_data)
+        
+        # Retrieve camp ID from the authenticated user's profile if needed
+        camp_id = request.user.id
+        
+        # Example of associating the IDP with a camp (if camp ID is available)
+        idp_camp_association_data = {
+            'camp': camp_id,
+            'idpemail': idppre_data['email']  # Store the email
+        }
+        idp_camp_association_serializer = IdpCampAssociationSerializer(data=idp_camp_association_data)
+        if idp_camp_association_serializer.is_valid():
+            idp_camp_association_serializer.save()
+        
+        # Serialize IDPPre data
+        idppre_serializer = IDPPreSerializer(idppre)
+        
+        return Response(idppre_serializer.data, status=status.HTTP_201_CREATED)
+
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 
 @api_view(['POST'])

@@ -13,8 +13,8 @@ class ChatConsumer(WebsocketConsumer):
         self.room_group_name = f"chat_{self.room_name}"
 
         try:
-            user_profile = ActorProfile.objects.get(user=self.user_id)
-            self.username = user_profile.user.username
+            user_profile = User.objects.get(id=self.user_id)
+            self.username = user_profile.username
         except ActorProfile.DoesNotExist:
             self.close()
             return

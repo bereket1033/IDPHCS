@@ -127,8 +127,8 @@ class Resource(models.Model):
     approved = models.BooleanField(default=False)
 
 class Message(models.Model):
-    sender = models.ForeignKey(ActorProfile, related_name='sender', on_delete=models.CASCADE)
-    receiver = models.ForeignKey(ActorProfile, related_name='receiver', on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, related_name='sender', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(User, related_name='receiver', on_delete=models.CASCADE)
     message_text = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
