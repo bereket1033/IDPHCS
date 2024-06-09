@@ -1,0 +1,19 @@
+                serializer = IDPSerializer(idp)
+
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"error": "Incomplete data provided for IDP registration"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"error": "Please Register by any Camp admin first to sign up"}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class IsSuperAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_superuser
+
+@api_view(['GET'])
+@permission_classes([IsSuperAdmin])
+def activate_user(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
